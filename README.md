@@ -56,17 +56,19 @@ npm run upload-ris     # encrypt & upload Scopus .ris file
 
 ### GitHub Pages
 
-Push to `main` — `.github/workflows/deploy.yml` builds and deploys automatically (requires GitHub Actions billing).
+**Use GitHub Actions only** (Settings → Pages → Source: **GitHub Actions**).
 
-**Manual deploy** (if Actions unavailable):
+Push to `main` — [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) builds and deploys automatically.
 
-```bash
-VITE_API_URL=https://double-blinded-sr-api.mixalhs1995.workers.dev npm run build -w app
-cp app/dist/index.html app/dist/404.html
-npx gh-pages -d app/dist -b gh-pages
-```
+Required secret: `VITE_API_URL` = `https://double-blinded-sr-api.mixalhs1995.workers.dev`
 
-Enable Pages: **Settings → Pages → Deploy from branch `gh-pages` / root**.
+**Do not** mix deployment methods. These conflict and cause *"in progress deployment"* errors:
+
+- ❌ Manual `npx gh-pages` pushes to `gh-pages` branch
+- ❌ `gh api .../pages/builds` manual triggers
+- ✅ Push to `main` and let Actions deploy (or use **Run workflow** in the Actions tab)
+
+If a deploy fails with *"in progress deployment"*, wait 2–3 minutes for the current one to finish, then re-run the workflow from the Actions tab.
 
 **Live URL:** https://magkosm.github.io/Double_Blinded_SR/
 
