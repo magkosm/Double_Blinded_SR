@@ -19,7 +19,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return raw ? (JSON.parse(raw) as AuthSession) : null;
   });
   const [reviewerPassword, setReviewerPasswordState] = useState<string | null>(null);
-  const [projectPassword, setProjectPasswordState] = useState<string | null>(null);
+  const [projectPassword, setProjectPasswordState] = useState<string | null>(() => {
+    return sessionStorage.getItem('sr_project_pw');
+  });
 
   const setSession = useCallback((s: AuthSession | null) => {
     setSessionState(s);
@@ -33,13 +35,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const setProjectPassword = useCallback((p: string | null) => {
     setProjectPasswordState(p);
+    if (p) sessionStorage.setItem('sr_project_pw', p);
+    else sessionStorage.removeItem('sr_project_pw');
   }, []);
 
   const logout = useCallback(() => {
     setSession(null);
     setReviewerPassword(null);
     setProjectPassword(null);
-  }, [setSession]);
+  }, [setSession, setProjectPassword]);
 
   return (
     <AuthContext.Provider

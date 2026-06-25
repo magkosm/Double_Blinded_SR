@@ -11,21 +11,44 @@ class ApiError extends Error {
   }
 }
 
+function parseErrorBody(body: string): string {
+  try {
+    const json = JSON.parse(body) as { error?: string };
+    if (json.error) return json.error;
+  } catch {
+    /* plain text */
+  }
+  return body;
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
   token?: string,
 ): Promise<T> {
+  if (!API_URL) {
+    throw new ApiError('App is not configured with an API URL. Redeploy with VITE_API_URL set.', 0);
+  }
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  } catch {
+    throw new ApiError(
+      'Cannot reach the screening API. This is often caused by a blocked network request — try refreshing or contact the admin.',
+      0,
+    );
+  }
+
   if (!res.ok) {
     const body = await res.text();
-    throw new ApiError(body || res.statusText, res.status);
+    throw new ApiError(parseErrorBody(body) || res.statusText, res.status);
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;

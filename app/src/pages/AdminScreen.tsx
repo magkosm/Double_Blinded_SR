@@ -10,6 +10,46 @@ import { computeStats, decisionsToMap, exportCsv } from '../lib/screening';
 import type { DecisionRecord, ProgressStats, ScreeningRecord, ScreeningRubric } from '../types';
 import { EMPTY_RUBRIC } from '../types';
 
+function ProjectPasswordPrompt({ onSubmit }: { onSubmit: (password: string) => void }) {
+  const [value, setValue] = useState('');
+  const [error, setError] = useState('');
+
+  function handleContinue(e: React.FormEvent) {
+    e.preventDefault();
+    if (!value.trim()) {
+      setError('Project password is required');
+      return;
+    }
+    onSubmit(value);
+  }
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
+      <form onSubmit={handleContinue} className="w-full max-w-md rounded-2xl bg-white p-6 shadow-card">
+        <h2 className="font-display text-xl font-semibold">Project password</h2>
+        <p className="mt-2 text-sm text-slate-500">
+          Required to decrypt papers and save changes. Stored in this browser session only.
+        </p>
+        <input
+          type="password"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3"
+          placeholder="Project password"
+          autoFocus
+        />
+        {error && <p className="mt-2 text-sm text-rose-600">{error}</p>}
+        <button
+          type="submit"
+          className="mt-4 w-full rounded-xl bg-brand-600 py-3 font-semibold text-white hover:bg-brand-700"
+        >
+          Continue
+        </button>
+      </form>
+    </div>
+  );
+}
+
 type ReviewerRow = {
   id: string;
   username: string;
@@ -66,31 +106,30 @@ export function AdminScreen() {
         api.fetchRubric(session.token).catch(() => null),
       ]);
 
-      if (rubricPayload && projectKey) {
-        const decryptedRubric = await decryptWithKey<ScreeningRubric>(rubricPayload, projectKey);
-        setRubric(decryptedRubric);
-      } else if (rubricPayload) {
-        const decryptedRubric = await decryptJson<ScreeningRubric>(rubricPayload, projectPassword);
-        setRubric(decryptedRubric);
-      } else {
-        setRubric(EMPTY_RUBRIC);
-      }
+      let key: CryptoKey | null = null;
 
       if (papersPayload) {
-        const decrypted = await decryptJson<ScreeningRecord[]>(
-          papersPayload as { ciphertext: string; iv: string; salt: string },
-          projectPassword,
-        );
+        const decrypted = await decryptJson<ScreeningRecord[]>(papersPayload, projectPassword);
         setPapers(decrypted);
 
-        const salt = Uint8Array.from(atob(papersPayload.salt), (c) => c.charCodeAt(0)) as Uint8Array<ArrayBuffer>;
-        const { key } = await deriveProjectKey(projectPassword, salt);
+        const salt = Uint8Array.from(atob(papersPayload.salt), (c) => c.charCodeAt(0));
+        const derived = await deriveProjectKey(projectPassword, salt);
+        key = derived.key;
         setProjectKey(key);
         await loadReviewersWithStats(session.token, key, decrypted);
       } else {
         setPapers([]);
+        setProjectKey(null);
         const list = await api.listReviewers(session.token);
         setReviewers(list.map((r) => ({ ...r, stats: computeStats([], new Map()) })));
+      }
+
+      if (rubricPayload && key) {
+        setRubric(await decryptWithKey<ScreeningRubric>(rubricPayload, key));
+      } else if (rubricPayload) {
+        setRubric(await decryptJson<ScreeningRubric>(rubricPayload, projectPassword));
+      } else {
+        setRubric(EMPTY_RUBRIC);
       }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Failed to load admin data');
@@ -170,16 +209,18 @@ export function AdminScreen() {
     setMessage('');
     try {
       const papersPayload = await api.fetchPapers(session.token).catch(() => null);
-      let payload;
       const rubricData = { ...rubric, updatedAt: new Date().toISOString() };
-      if (papersPayload && projectKey) {
+      let payload;
+      if (papersPayload) {
         const salt = Uint8Array.from(atob(papersPayload.salt), (c) => c.charCodeAt(0));
-        payload = await encryptWithKey(rubricData, projectKey, salt);
+        const { key } = await deriveProjectKey(projectPassword, salt);
+        payload = await encryptWithKey(rubricData, key, salt);
       } else {
         payload = await encryptJson(rubricData, projectPassword);
       }
       await api.uploadRubric(payload, session.token);
       setMessage('Rubric saved (encrypted)');
+      await refresh();
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Failed to save rubric');
     } finally {
@@ -262,18 +303,7 @@ export function AdminScreen() {
 
   if (!projectPassword) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
-        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-card">
-          <h2 className="font-display text-xl font-semibold">Project password</h2>
-          <p className="mt-2 text-sm text-slate-500">Enter the project password to manage encrypted papers.</p>
-          <input
-            type="password"
-            onChange={(e) => setProjectPassword(e.target.value)}
-            className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3"
-            placeholder="Project password"
-          />
-        </div>
-      </div>
+      <ProjectPasswordPrompt onSubmit={setProjectPassword} />
     );
   }
 
@@ -298,7 +328,13 @@ export function AdminScreen() {
 
       <main className="mx-auto max-w-5xl space-y-6 p-4">
         {message && (
-          <div className="rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-800">{message}</div>
+          <div className={`rounded-xl px-4 py-3 text-sm ${message.toLowerCase().includes('fail') || message.toLowerCase().includes('cannot') || message.toLowerCase().includes('invalid') ? 'bg-rose-50 text-rose-800' : 'bg-brand-50 text-brand-800'}`}>
+            {message}
+          </div>
+        )}
+
+        {loading && (
+          <div className="text-center text-sm text-slate-500">Loading dashboard…</div>
         )}
 
         <section className="rounded-2xl bg-white p-6 shadow-sm">
