@@ -2,10 +2,12 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { LoginForm } from '../components/LoginForm';
 import { SwipeCard } from '../components/SwipeCard';
+import { RubricPanel } from '../components/RubricPanel';
 import * as api from '../lib/api-client';
 import { decryptWithKey, encryptWithKey, unwrapProjectKey } from '../lib/crypto';
 import { buildQueue, computeStats, decisionsToMap } from '../lib/screening';
-import type { Decision, DecisionRecord, ScreeningRecord } from '../types';
+import type { Decision, DecisionRecord, ScreeningRecord, ScreeningRubric } from '../types';
+import { EMPTY_RUBRIC } from '../types';
 
 export function ReviewerScreen() {
   const { session, setSession, reviewerPassword, setReviewerPassword, logout } = useAuth();
@@ -18,6 +20,7 @@ export function ReviewerScreen() {
   const [queueIndex, setQueueIndex] = useState(0);
   const [history, setHistory] = useState<DecisionRecord[]>([]);
   const [showHints, setShowHints] = useState(true);
+  const [rubric, setRubric] = useState<ScreeningRubric>(EMPTY_RUBRIC);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
   const handleDecisionRef = useRef<(d: Decision) => void>(() => {});
 
@@ -25,10 +28,11 @@ export function ReviewerScreen() {
     setLoading(true);
     setError('');
     try {
-      const [meta, papersPayload, decisionsPayload] = await Promise.all([
+      const [meta, papersPayload, decisionsPayload, rubricPayload] = await Promise.all([
         api.fetchReviewerMeta(userId, token),
         api.fetchPapers(token),
         api.fetchDecisions(userId, token),
+        api.fetchRubric(token),
       ]);
 
       const { key } = await unwrapProjectKey(meta.wrappedProjectKey, password);
@@ -48,6 +52,16 @@ export function ReviewerScreen() {
           key,
         );
         setDecisions(decisionsToMap(decryptedDecisions));
+      }
+
+      if (rubricPayload) {
+        const decryptedRubric = await decryptWithKey<ScreeningRubric>(
+          rubricPayload as { ciphertext: string; iv: string; salt: string },
+          key,
+        );
+        setRubric(decryptedRubric);
+      } else {
+        setRubric(EMPTY_RUBRIC);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load screening data');
@@ -204,6 +218,8 @@ export function ReviewerScreen() {
           Swipe or use arrows: → Include · ← Exclude · ↓ Maybe · ↑ Skip
         </div>
       )}
+
+      <RubricPanel rubric={rubric} variant="reviewer" />
 
       <main className="relative flex-1 px-4 pb-6 pt-2" style={{ minHeight: '60vh' }}>
         {done ? (

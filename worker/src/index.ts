@@ -42,6 +42,7 @@ const KEYS = {
   reviewers: 'meta:reviewers',
   reviewer: (id: string) => `auth:reviewer:${id}`,
   papers: 'data:papers',
+  rubric: 'data:rubric',
   decisions: (id: string) => `data:decisions:${id}`,
   rateLimit: (ip: string) => `ratelimit:${ip}`,
 };
@@ -83,6 +84,15 @@ export default {
         }
         if (request.method === 'GET' && auth) {
           return cors(await handleGetPapers(env), corsOrigin);
+        }
+      }
+
+      if (path === '/api/rubric') {
+        if (request.method === 'PUT' && auth?.role === 'admin') {
+          return cors(await handlePutRubric(request, env), corsOrigin);
+        }
+        if (request.method === 'GET' && auth) {
+          return cors(await handleGetRubric(env), corsOrigin);
         }
       }
 
@@ -190,6 +200,18 @@ async function handlePutPapers(request: Request, env: Env): Promise<Response> {
 async function handleGetPapers(env: Env): Promise<Response> {
   const raw = await env.KV.get(KEYS.papers);
   if (!raw) return json({ error: 'No papers uploaded' }, 404);
+  return new Response(raw, { headers: { 'Content-Type': 'application/json' } });
+}
+
+async function handlePutRubric(request: Request, env: Env): Promise<Response> {
+  const body = await request.json();
+  await env.KV.put(KEYS.rubric, JSON.stringify(body));
+  return json({ ok: true });
+}
+
+async function handleGetRubric(env: Env): Promise<Response> {
+  const raw = await env.KV.get(KEYS.rubric);
+  if (!raw) return json({ error: 'No rubric configured' }, 404);
   return new Response(raw, { headers: { 'Content-Type': 'application/json' } });
 }
 

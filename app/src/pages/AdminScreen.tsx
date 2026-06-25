@@ -2,11 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LoginForm } from '../components/LoginForm';
+import { RubricEditor, RubricPanel } from '../components/RubricPanel';
 import * as api from '../lib/api-client';
-import { decryptJson, decryptWithKey, encryptJson, generatePassword, wrapProjectKey, deriveProjectKey } from '../lib/crypto';
+import { decryptJson, decryptWithKey, encryptJson, encryptWithKey, generatePassword, wrapProjectKey, deriveProjectKey } from '../lib/crypto';
 import { parseRis } from '../lib/ris-parser';
 import { computeStats, decisionsToMap, exportCsv } from '../lib/screening';
-import type { DecisionRecord, ProgressStats, ScreeningRecord } from '../types';
+import type { DecisionRecord, ProgressStats, ScreeningRecord, ScreeningRubric } from '../types';
+import { EMPTY_RUBRIC } from '../types';
 
 type ReviewerRow = {
   id: string;
@@ -25,6 +27,8 @@ export function AdminScreen() {
   const [createdCreds, setCreatedCreds] = useState<{ username: string; password: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [projectKey, setProjectKey] = useState<CryptoKey | null>(null);
+  const [rubric, setRubric] = useState<ScreeningRubric>(EMPTY_RUBRIC);
+  const [savingRubric, setSavingRubric] = useState(false);
 
   const loadReviewersWithStats = useCallback(
     async (token: string, key: CryptoKey, paperList: ScreeningRecord[]) => {
@@ -57,7 +61,21 @@ export function AdminScreen() {
     setLoading(true);
     setMessage('');
     try {
-      const papersPayload = await api.fetchPapers(session.token).catch(() => null);
+      const [papersPayload, rubricPayload] = await Promise.all([
+        api.fetchPapers(session.token).catch(() => null),
+        api.fetchRubric(session.token).catch(() => null),
+      ]);
+
+      if (rubricPayload && projectKey) {
+        const decryptedRubric = await decryptWithKey<ScreeningRubric>(rubricPayload, projectKey);
+        setRubric(decryptedRubric);
+      } else if (rubricPayload) {
+        const decryptedRubric = await decryptJson<ScreeningRubric>(rubricPayload, projectPassword);
+        setRubric(decryptedRubric);
+      } else {
+        setRubric(EMPTY_RUBRIC);
+      }
+
       if (papersPayload) {
         const decrypted = await decryptJson<ScreeningRecord[]>(
           papersPayload as { ciphertext: string; iv: string; salt: string },
@@ -120,7 +138,11 @@ export function AdminScreen() {
     setMessage('');
     const password = generatePassword();
     try {
-      const wrapped = await wrapProjectKey(projectPassword, password);
+      const papersPayload = await api.fetchPapers(session.token).catch(() => null);
+      const projectSalt = papersPayload
+        ? Uint8Array.from(atob(papersPayload.salt), (c) => c.charCodeAt(0))
+        : undefined;
+      const wrapped = await wrapProjectKey(projectPassword, password, projectSalt);
       await api.createReviewer(
         {
           username: newUsername.trim(),
@@ -139,6 +161,29 @@ export function AdminScreen() {
       await refresh();
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Failed to create reviewer');
+    }
+  }
+
+  async function handleSaveRubric() {
+    if (!session || !projectPassword) return;
+    setSavingRubric(true);
+    setMessage('');
+    try {
+      const papersPayload = await api.fetchPapers(session.token).catch(() => null);
+      let payload;
+      const rubricData = { ...rubric, updatedAt: new Date().toISOString() };
+      if (papersPayload && projectKey) {
+        const salt = Uint8Array.from(atob(papersPayload.salt), (c) => c.charCodeAt(0));
+        payload = await encryptWithKey(rubricData, projectKey, salt);
+      } else {
+        payload = await encryptJson(rubricData, projectPassword);
+      }
+      await api.uploadRubric(payload, session.token);
+      setMessage('Rubric saved (encrypted)');
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Failed to save rubric');
+    } finally {
+      setSavingRubric(false);
     }
   }
 
@@ -273,6 +318,25 @@ export function AdminScreen() {
               onChange={(e) => e.target.files?.[0] && handleRisUpload(e.target.files[0])}
             />
           </label>
+        </section>
+
+        <section className="rounded-2xl bg-white p-6 shadow-sm">
+          <h2 className="font-semibold text-slate-800">Screening rubric</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Review question, criteria, and notes shown to reviewers while screening
+          </p>
+          <div className="mt-4">
+            <RubricEditor
+              rubric={rubric}
+              onChange={setRubric}
+              onSave={handleSaveRubric}
+              saving={savingRubric}
+            />
+          </div>
+          <div className="mt-6 border-t border-slate-100 pt-4">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">Preview</p>
+            <RubricPanel rubric={rubric} variant="admin" />
+          </div>
         </section>
 
         <section className="rounded-2xl bg-white p-6 shadow-sm">

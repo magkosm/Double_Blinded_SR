@@ -1,3 +1,18 @@
+export type ScreeningRubric = {
+  reviewQuestion: string;
+  inclusionCriteria: string;
+  exclusionCriteria: string;
+  generalNotes: string;
+  updatedAt?: string;
+};
+
+export const EMPTY_RUBRIC: ScreeningRubric = {
+  reviewQuestion: '',
+  inclusionCriteria: '',
+  exclusionCriteria: '',
+  generalNotes: '',
+};
+
 export type ScreeningRecord = {
   id: string;
   title: string;

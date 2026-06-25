@@ -45,8 +45,24 @@ export async function uploadPapers(payload: EncryptedPayload, token: string) {
   }, token);
 }
 
-export async function fetchPapers(token: string): Promise<EncryptedPayload & { salt?: string }> {
+export async function fetchPapers(token: string): Promise<EncryptedPayload> {
   return request('/api/papers', {}, token);
+}
+
+export async function uploadRubric(payload: EncryptedPayload, token: string) {
+  return request('/api/rubric', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  }, token);
+}
+
+export async function fetchRubric(token: string): Promise<EncryptedPayload | null> {
+  try {
+    return await request<EncryptedPayload>('/api/rubric', {}, token);
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  }
 }
 
 export async function saveDecisions(
