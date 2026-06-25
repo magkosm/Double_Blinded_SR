@@ -8,4 +8,4 @@ binding = "KV"
 id = "94974aa587864373b629fd0614d5a777"
 
 [vars]
-ALLOWED_ORIGIN = "https://magkos.github.io"
+ALLOWED_ORIGIN = "https://magkosm.github.io"

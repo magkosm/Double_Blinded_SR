@@ -2,7 +2,7 @@
 
 Mobile-first web app for systematic review title/abstract screening with encrypted storage and per-reviewer blinded decisions.
 
-- **Live app:** https://magkos.github.io/Double_Blinded_SR/
+- **Live app:** https://magkosm.github.io/Double_Blinded_SR/
 - **Reviewer login:** `/`
 - **Admin panel:** `/admin`
 
