@@ -1,0 +1,18 @@
+# Secrets — never commit
+.secrets.local
+.env
+.env.*
+!.env.example
+
+# Dependencies & build output
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+
+# OS / editor
+.DS_Store
+*.log
+
+# Data export (large; keep local only)
+scopus_export_Jun 18-2026_642141a5-a34e-4acb-aa31-eb18be0a94ea/scopus_export_Jun 18-2026_642141a5-a34e-4acb-aa31-eb18be0a94ea.ris
