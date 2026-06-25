@@ -9,10 +9,15 @@ if [[ ! -f "$SECRETS" ]]; then
   exit 1
 fi
 
-# shellcheck disable=SC1090
-source <(grep -E '^(VITE_API_URL|WORKER_URL)=' "$SECRETS" | sed 's/^/export /')
+read_secret() {
+  grep "^$1=" "$SECRETS" | cut -d= -f2- | head -1
+}
 
-API_URL="${VITE_API_URL:-${WORKER_URL:-}}"
+API_URL="$(read_secret VITE_API_URL)"
+if [[ -z "$API_URL" ]]; then
+  API_URL="$(read_secret WORKER_URL)"
+fi
+
 if [[ -z "$API_URL" ]]; then
   echo "Set VITE_API_URL or WORKER_URL in .secrets.local"
   exit 1
@@ -20,7 +25,7 @@ fi
 
 echo "Building with VITE_API_URL=$API_URL"
 cd "$ROOT"
-npm run build -w app
+VITE_API_URL="$API_URL" npm run build -w app
 cp app/dist/index.html app/dist/404.html
 
 echo "Publishing to gh-pages branch..."
