@@ -12,6 +12,7 @@
     "build": "npm run build -w app",
     "test": "npm run test -w app",
     "deploy:worker": "npm run deploy -w worker",
+    "deploy:pages": "bash scripts/deploy-pages.sh",
     "bootstrap": "npm run bootstrap -w scripts",
     "upload-ris": "npm run upload-ris -w scripts"
   }

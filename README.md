@@ -28,49 +28,40 @@ Arrow keys work on desktop. Authors are hidden from reviewers.
 ```bash
 npm install
 cp .secrets.local.example .secrets.local   # or use existing .secrets.local
-# Set VITE_API_URL in app/.env.local for dev:
 echo 'VITE_API_URL=https://double-blinded-sr-api.mixalhs1995.workers.dev' > app/.env.local
 
-npm run dev          # frontend at http://localhost:5173
+npm run dev          # frontend at http://localhost:5173/Double_Blinded_SR/
 npm run dev:worker   # worker at http://localhost:8787
 npm run test         # RIS parser tests
 ```
 
-## Deployment
-
-### GitHub secrets (repo Settings → Secrets)
-
-| Secret | Value |
-|--------|-------|
-| `VITE_API_URL` | Worker URL |
-| `CLOUDFLARE_API_TOKEN` | CF API token |
-| `CLOUDFLARE_ACCOUNT_ID` | `ec566f2d5d1cd4910b024bef3519ccf0` |
-
-### Cloudflare Worker
-
-```bash
-npm run deploy:worker
-npm run bootstrap      # once, registers admin from .secrets.local
-npm run upload-ris     # encrypt & upload Scopus .ris file
-```
+## Deployment (local only — no GitHub Actions)
 
 ### GitHub Pages
 
-**Use GitHub Actions only** (Settings → Pages → Source: **GitHub Actions**).
+1. In repo **Settings → Pages**, set source to branch **`gh-pages`** / **`/` (root)**.
+2. Ensure `.secrets.local` has `VITE_API_URL` (or `WORKER_URL`).
+3. From your machine:
 
-Push to `main` — [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) builds and deploys automatically.
+```bash
+npm run deploy:pages
+```
 
-Required secret: `VITE_API_URL` = `https://double-blinded-sr-api.mixalhs1995.workers.dev`
-
-**Do not** mix deployment methods. These conflict and cause *"in progress deployment"* errors:
-
-- ❌ Manual `npx gh-pages` pushes to `gh-pages` branch
-- ❌ `gh api .../pages/builds` manual triggers
-- ✅ Push to `main` and let Actions deploy (or use **Run workflow** in the Actions tab)
-
-If a deploy fails with *"in progress deployment"*, wait 2–3 minutes for the current one to finish, then re-run the workflow from the Actions tab.
+This builds the app, copies `404.html` for SPA routing, and pushes to the `gh-pages` branch.
 
 **Live URL:** https://magkosm.github.io/Double_Blinded_SR/
+
+### Cloudflare Worker
+
+Deploy from your machine (credentials in `.secrets.local`):
+
+```bash
+export CLOUDFLARE_API_TOKEN=$(grep '^CLOUDFLARE_API_TOKEN=' .secrets.local | cut -d= -f2-)
+export CLOUDFLARE_ACCOUNT_ID=$(grep '^CLOUDFLARE_ACCOUNT_ID=' .secrets.local | cut -d= -f2-)
+npm run deploy:worker
+npm run bootstrap      # once, registers admin
+npm run upload-ris     # encrypt & upload Scopus .ris file
+```
 
 ## Admin workflow
 
