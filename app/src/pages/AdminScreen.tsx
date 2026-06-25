@@ -69,6 +69,7 @@ export function AdminScreen() {
   const [projectKey, setProjectKey] = useState<CryptoKey | null>(null);
   const [rubric, setRubric] = useState<ScreeningRubric>(EMPTY_RUBRIC);
   const [savingRubric, setSavingRubric] = useState(false);
+  const [creatingReviewer, setCreatingReviewer] = useState(false);
 
   const loadReviewersWithStats = useCallback(
     async (token: string, key: CryptoKey, paperList: ScreeningRecord[]) => {
@@ -172,10 +173,13 @@ export function AdminScreen() {
     }
   }
 
-  async function handleCreateReviewer() {
-    if (!session || !projectPassword || !newUsername.trim()) return;
-    setMessage('');
+  async function handleCreateReviewer(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (!session || !projectPassword || !newUsername.trim() || creatingReviewer) return;
+    setMessage('Creating reviewer… (key wrapping may take a few seconds)');
+    setCreatingReviewer(true);
     const password = generatePassword();
+    const username = newUsername.trim();
     try {
       const papersPayload = await api.fetchPapers(session.token).catch(() => null);
       const projectSalt = papersPayload
@@ -184,7 +188,7 @@ export function AdminScreen() {
       const wrapped = await wrapProjectKey(projectPassword, password, projectSalt);
       await api.createReviewer(
         {
-          username: newUsername.trim(),
+          username,
           password,
           wrappedProjectKey: {
             wrappedKey: wrapped.wrappedKey,
@@ -195,11 +199,16 @@ export function AdminScreen() {
         },
         session.token,
       );
-      setCreatedCreds({ username: newUsername.trim(), password });
+      setCreatedCreds({ username, password });
       setNewUsername('');
+      setMessage(`Reviewer "${username}" created successfully`);
       await refresh();
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Failed to create reviewer');
+      const detail = err instanceof Error ? err.message : 'Failed to create reviewer';
+      setMessage(`Failed to create reviewer: ${detail}`);
+      console.error('Create reviewer failed', err);
+    } finally {
+      setCreatingReviewer(false);
     }
   }
 
@@ -377,22 +386,23 @@ export function AdminScreen() {
 
         <section className="rounded-2xl bg-white p-6 shadow-sm">
           <h2 className="font-semibold text-slate-800">Reviewers</h2>
-          <div className="mt-4 flex gap-2">
+          <form onSubmit={handleCreateReviewer} className="mt-4 flex gap-2">
             <input
               type="text"
               value={newUsername}
               onChange={(e) => setNewUsername(e.target.value)}
               placeholder="Username"
               className="flex-1 rounded-xl border border-slate-200 px-4 py-2"
+              disabled={creatingReviewer}
             />
             <button
-              onClick={handleCreateReviewer}
-              disabled={!newUsername.trim()}
+              type="submit"
+              disabled={!newUsername.trim() || creatingReviewer}
               className="rounded-xl bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50"
             >
-              Create
+              {creatingReviewer ? 'Creating…' : 'Create'}
             </button>
-          </div>
+          </form>
 
           {createdCreds && (
             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">

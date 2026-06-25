@@ -24,6 +24,7 @@ async function deriveKey(
   password: string,
   salt: Uint8Array,
   usages: KeyUsage[],
+  extractable = false,
 ): Promise<CryptoKey> {
   const enc = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
@@ -31,7 +32,7 @@ async function deriveKey(
     { name: 'PBKDF2', salt: asBuffer(salt), iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
     keyMaterial,
     { name: 'AES-GCM', length: 256 },
-    false,
+    extractable,
     usages,
   );
 }
@@ -39,9 +40,10 @@ async function deriveKey(
 export async function deriveProjectKey(
   password: string,
   salt?: Uint8Array,
+  extractable = false,
 ): Promise<{ key: CryptoKey; salt: Uint8Array }> {
   const s = salt ?? crypto.getRandomValues(new Uint8Array(SALT_BYTES));
-  const key = await deriveKey(password, s, ['encrypt', 'decrypt']);
+  const key = await deriveKey(password, s, ['encrypt', 'decrypt'], extractable);
   return { key, salt: s };
 }
 
@@ -80,7 +82,8 @@ export async function wrapProjectKey(
   reviewerPassword: string,
   projectSalt?: Uint8Array,
 ) {
-  const { key: projectKey, salt: resolvedProjectSalt } = await deriveProjectKey(projectPassword, projectSalt);
+  // Key must be extractable to wrap as raw bytes (Web Crypto requirement)
+  const { key: projectKey, salt: resolvedProjectSalt } = await deriveProjectKey(projectPassword, projectSalt, true);
   const reviewerSalt = crypto.getRandomValues(new Uint8Array(SALT_BYTES));
   const reviewerKey = await deriveReviewerKey(reviewerPassword, reviewerSalt);
   const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
