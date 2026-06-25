@@ -56,9 +56,19 @@ npm run upload-ris     # encrypt & upload Scopus .ris file
 
 ### GitHub Pages
 
-Push to `main` — `.github/workflows/deploy.yml` builds and deploys automatically.
+Push to `main` — `.github/workflows/deploy.yml` builds and deploys automatically (requires GitHub Actions billing).
 
-Enable Pages: **Settings → Pages → Source: GitHub Actions**.
+**Manual deploy** (if Actions unavailable):
+
+```bash
+VITE_API_URL=https://double-blinded-sr-api.mixalhs1995.workers.dev npm run build -w app
+cp app/dist/index.html app/dist/404.html
+npx gh-pages -d app/dist -b gh-pages
+```
+
+Enable Pages: **Settings → Pages → Deploy from branch `gh-pages` / root**.
+
+**Live URL:** https://magkosm.github.io/Double_Blinded_SR/
 
 ## Admin workflow
 
