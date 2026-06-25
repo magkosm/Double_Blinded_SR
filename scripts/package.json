@@ -1,0 +1,14 @@
+{
+  "name": "scripts",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "bootstrap": "tsx bootstrap.ts",
+    "upload-ris": "tsx upload-ris.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

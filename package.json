@@ -1,0 +1,18 @@
+{
+  "name": "double-blinded-sr",
+  "private": true,
+  "workspaces": [
+    "app",
+    "worker",
+    "scripts"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w app",
+    "dev:worker": "npm run dev -w worker",
+    "build": "npm run build -w app",
+    "test": "npm run test -w app",
+    "deploy:worker": "npm run deploy -w worker",
+    "bootstrap": "npm run bootstrap -w scripts",
+    "upload-ris": "npm run upload-ris -w scripts"
+  }
+}

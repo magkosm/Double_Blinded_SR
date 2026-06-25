@@ -1,0 +1,11 @@
+name = "double-blinded-sr-api"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+account_id = "ec566f2d5d1cd4910b024bef3519ccf0"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "94974aa587864373b629fd0614d5a777"
+
+[vars]
+ALLOWED_ORIGIN = "https://magkos.github.io"
