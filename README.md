@@ -1,10 +1,12 @@
 # Double-Blind Title/Abstract Screening
 
-Mobile-first web app for systematic review title/abstract screening with encrypted storage and per-reviewer blinded decisions.
+**v0.5** — Mobile-first web app for systematic review title/abstract screening with encrypted storage and per-reviewer blinded decisions.
 
 - **Live app:** https://magkosm.github.io/Double_Blinded_SR/
 - **Reviewer login:** `/`
 - **Admin panel:** `/admin`
+- **Roadmap:** [ROADMAP.md](./ROADMAP.md)
+- **License:** Proprietary — see [LICENSE](./LICENSE)
 
 ## Stack
 
@@ -80,3 +82,13 @@ npm run upload-ris     # encrypt & upload Scopus .ris file
 ## No recovery
 
 Lost admin or reviewer passwords cannot be recovered. Revoke and recreate reviewer accounts from admin.
+
+## License
+
+Copyright (c) 2026 magkosm. All rights reserved. This is **proprietary, private software** — not open source. See [LICENSE](./LICENSE).
+
+The Software is provided as-is, without warranty, and has **not been independently reviewed or reproduced** for validation of systematic review methodology.
+
+## What's next
+
+Planned features (multi-stage screening, PDF review, multi-review tenancy, progress dashboards, exclusion buckets, UI polish) are tracked in [ROADMAP.md](./ROADMAP.md). Release history: [CHANGELOG.md](./CHANGELOG.md).
