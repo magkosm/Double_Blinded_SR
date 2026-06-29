@@ -1,34 +1,31 @@
 # Changelog
 
-All notable changes to this project are documented here.
+## [1.0.0] — 2026-06-25
+
+Full roadmap implementation: multi-review tenancy, multi-RIS, stages, dashboards, buckets, UI polish.
+
+### Added
+
+- **Multi-review tenancy (v0.7):** super-admin, review-admin, scoped reviewer routes (`/admin`, `/admin/:slug`, `/r/:slug`)
+- **Multi-RIS import:** append, dedupe (DOI / title+year), batch provenance, import reports
+- **Stage modes:** title-only vs title+abstract; stage 2 full-text UI scaffold with PDF viewer, comments, annotations
+- **Progress dashboard:** triage stats, per-reviewer table, RIS batches, conflict detection
+- **Exclusion buckets:** configurable labels, post-decision picker, reviewer summary view
+- **Usage stats:** privacy-preserving aggregate counters on server
+- **Documentation:** `docs/` with how-tos, human QA checklists, screenshot capture script
+- **QA:** Vitest (app + worker), Playwright E2E smoke, `npm run qa` / `npm run qa:full`
+- Toast notifications, skeleton loaders, dark mode toggle, accessibility label fixes
+
+### Changed
+
+- Worker refactored into modules; review-scoped KV keys with legacy route compatibility
+- Bootstrap creates super-admin; migration script for v0.5 → `review:default:*`
+
+---
 
 ## [0.5.0] — 2026-06-25
 
 First usable release: single-review title/abstract screening.
 
-### Added
-
-- Mobile-first swipe UI (include / exclude / maybe / skip) with keyboard fallback
-- Client-side AES-GCM encryption for papers and reviewer decisions
-- Cloudflare Worker API: bcrypt auth, JWT, KV storage, CORS, rate limits
-- Admin panel: RIS upload, reviewer CRUD with one-time password modal, rubric editor, progress counts, CSV export
-- Bootstrap and RIS upload scripts for 786-record Scopus export
-- GitHub Pages deploy via `gh-pages` branch; Worker deploy from local machine
-- Proprietary LICENSE with no-warranty and unreviewed-reproduction disclaimer
-- ROADMAP.md for v0.6+ planning
-
-### Fixed
-
-- CSP `connect-src` for nested Cloudflare Workers subdomain
-- Reviewer key wrapping (extractable project key, correct papers salt)
-- Swipe card layout (visible title/abstract content)
-- Admin session conflict on reviewer route
-
-### Security
-
-- Credentials and API tokens in `.secrets.local` (gitignored)
-- No plaintext papers or decisions on server
-
----
-
+[1.0.0]: https://github.com/magkosm/Double_Blinded_SR/releases/tag/v1.0.0
 [0.5.0]: https://github.com/magkosm/Double_Blinded_SR/releases/tag/v0.5.0

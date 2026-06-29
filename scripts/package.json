@@ -1,11 +1,18 @@
 {
   "name": "scripts",
   "private": true,
-  "version": "0.5.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "bootstrap": "tsx bootstrap.ts",
-    "upload-ris": "tsx upload-ris.ts"
+    "upload-ris": "tsx upload-ris.ts",
+    "migrate": "tsx migrate-v0.5-to-review.ts",
+    "capture-docs": "tsx capture-docs.ts",
+    "upgrade-super-admin": "tsx upgrade-super-admin.ts",
+    "sync-credentials": "tsx sync-credentials.ts"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0"
   },
   "devDependencies": {
     "tsx": "^4.19.2",

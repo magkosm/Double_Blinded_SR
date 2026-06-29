@@ -7,5 +7,10 @@ account_id = "ec566f2d5d1cd4910b024bef3519ccf0"
 binding = "KV"
 id = "94974aa587864373b629fd0614d5a777"
 
+# Uncomment when R2 bucket is created for PDF storage (Phase 3)
+# [[r2_buckets]]
+# binding = "PDF_BUCKET"
+# bucket_name = "double-blinded-sr-pdfs"
+
 [vars]
 ALLOWED_ORIGIN = "https://magkosm.github.io"

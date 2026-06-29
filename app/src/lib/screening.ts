@@ -1,4 +1,4 @@
-import type { DecisionRecord, ScreeningRecord } from '../types';
+import type { DecisionRecord, ScreeningRecord, ProgressStats } from '../types';
 
 export function buildQueue(
   papers: ScreeningRecord[],
@@ -22,7 +22,7 @@ export function computeStats(
   pending: number;
   total: number;
 } {
-  const total = papers.length;
+  const total = papers.length > 0 ? papers.length : decisions.size;
   let include = 0;
   let exclude = 0;
   let maybe = 0;
@@ -45,15 +45,36 @@ export function computeStats(
     }
   }
 
-  const decided = include + exclude + maybe;
+  const decided = include + exclude + maybe + skip;
   return {
     include,
     exclude,
     maybe,
     skip,
-    pending: total - decided,
+    pending: Math.max(0, total - decided),
     total,
   };
+}
+
+/** Merge decision maps from all reviewers for admin overview stats. */
+export function aggregateDecisionStats(
+  papers: ScreeningRecord[],
+  decisionMaps: Map<string, DecisionRecord>[],
+): ProgressStats {
+  if (decisionMaps.length === 0) {
+    return computeStats(papers, new Map());
+  }
+  if (decisionMaps.length === 1) {
+    return computeStats(papers, decisionMaps[0]!);
+  }
+
+  const merged = new Map<string, DecisionRecord>();
+  for (const map of decisionMaps) {
+    for (const [paperId, record] of map) {
+      if (!merged.has(paperId)) merged.set(paperId, record);
+    }
+  }
+  return computeStats(papers, merged);
 }
 
 export function decisionsToMap(records: DecisionRecord[]): Map<string, DecisionRecord> {
@@ -80,6 +101,16 @@ function escapeCsv(value: string): string {
     return `"${value.replace(/"/g, '""')}"`;
   }
   return value;
+}
+
+export function buildStage2Queue(
+  papers: ScreeningRecord[],
+  decisions: Map<string, DecisionRecord>,
+): ScreeningRecord[] {
+  return papers.filter((p) => {
+    const d = decisions.get(p.id);
+    return d && (d.decision === 'include' || d.decision === 'maybe');
+  });
 }
 
 export function getCurrentPaper(

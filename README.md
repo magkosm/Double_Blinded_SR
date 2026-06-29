@@ -1,11 +1,13 @@
 # Double-Blind Title/Abstract Screening
 
-**v0.5** — Mobile-first web app for systematic review title/abstract screening with encrypted storage and per-reviewer blinded decisions.
+**v1.0** — Multi-review systematic review screening platform.
 
 - **Live app:** https://magkosm.github.io/Double_Blinded_SR/
 - **Reviewer login:** `/`
 - **Admin panel:** `/admin`
 - **Roadmap:** [ROADMAP.md](./ROADMAP.md)
+- **Documentation:** [docs/README.md](./docs/README.md)
+- **Checkpoint (paused 2026-06-25):** [CHECKPOINT.md](./CHECKPOINT.md)
 - **License:** Proprietary — see [LICENSE](./LICENSE)
 
 ## Stack
@@ -74,7 +76,9 @@ npm run upload-ris     # encrypt & upload Scopus .ris file
 
 ## Security
 
-- `.secrets.local` is gitignored — never commit credentials.
+- `.secrets.local` and `credentials.local` are gitignored — never commit credentials.
+- Run `npm run sync-credentials` to refresh the human-readable password file from `.secrets.local`.
+- Setup guide: [docs/deployment/credentials-and-setup.md](docs/deployment/credentials-and-setup.md)
 - Papers and decisions are encrypted before leaving the browser.
 - Worker stores ciphertext and bcrypt hashes only.
 - Rotate Cloudflare API token if exposed.

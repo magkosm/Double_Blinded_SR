@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 interface LoginFormProps {
   title: string;
   subtitle: string;
-  role: 'admin' | 'reviewer';
+  role: 'super_admin' | 'review_admin' | 'reviewer' | 'admin';
   onSubmit: (username: string, password: string) => Promise<void>;
   extraFields?: React.ReactNode;
 }
@@ -40,8 +40,11 @@ export function LoginForm({ title, subtitle, onSubmit, extraFields }: LoginFormP
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Username</label>
+            <label htmlFor="login-username" className="mb-1 block text-sm font-medium text-slate-700">
+              Username
+            </label>
             <input
+              id="login-username"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -51,8 +54,11 @@ export function LoginForm({ title, subtitle, onSubmit, extraFields }: LoginFormP
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Password</label>
+            <label htmlFor="login-password" className="mb-1 block text-sm font-medium text-slate-700">
+              Password
+            </label>
             <input
+              id="login-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

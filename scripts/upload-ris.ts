@@ -101,13 +101,16 @@ async function main() {
   const records = parseRis(content);
   console.log(`Parsed ${records.length} records`);
 
+  const reviewSlug = process.argv.find((a) => a.startsWith('--review-slug='))?.split('=')[1] || 'default';
+
   const loginRes = await fetch(`${apiUrl}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       username: secrets.ADMIN_USERNAME,
       password: secrets.ADMIN_PASSWORD,
-      role: 'admin',
+      role: 'review_admin',
+      reviewSlug,
     }),
   });
   if (!loginRes.ok) {
@@ -117,7 +120,7 @@ async function main() {
   const { token } = (await loginRes.json()) as { token: string };
 
   const payload = await encryptJson(records, secrets.PROJECT_PASSWORD!);
-  const uploadRes = await fetch(`${apiUrl}/api/papers`, {
+  const uploadRes = await fetch(`${apiUrl}/api/reviews/${reviewSlug}/papers`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify(payload),

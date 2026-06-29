@@ -72,7 +72,8 @@ async function main() {
   }
 
   console.log('Bootstrap successful:', body);
-  console.log(`Admin user "${username}" is ready.`);
+  console.log(`Super-admin "${username}" is ready. Sign in at /admin`);
+  console.log('Next: create a review, bootstrap review admin, upload RIS.');
 }
 
 main();

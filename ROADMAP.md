@@ -14,6 +14,28 @@ This document tracks planned work toward multi-stage, multi-review systematic re
 - [x] Cloudflare Worker + KV backend; GitHub Pages frontend
 - [x] Mobile-first reviewer UI with resume / undo
 
+**Limitation (v0.5):** one RIS file per deployment — see [Multi-RIS import](#multi-ris-import-per-review) below.
+
+---
+
+## Multi-RIS import per review
+
+Each review should accept **multiple RIS files** over time (e.g. Scopus + PubMed + Cochrane exports, or supplemental searches). Applies to stage 1 and stage 2 uploads.
+
+- [ ] Admin can upload several `.ris` files into the **same review** (not replace-only)
+- [ ] **Incremental import** — new uploads append to the review corpus; existing reviewer decisions preserved for matched records
+- [ ] **Merge & dedupe** across files — primary key: DOI; fallback: normalized title + year; flag near-duplicates for admin review
+- [ ] **Provenance** — each paper stores source batch: filename, upload date, optional label (e.g. `"PubMed Dec 2025"`, `"Scopus ICE query"`)
+- [ ] **Import report** — added / skipped-duplicate / failed-parse counts per file; downloadable log
+- [ ] Admin UI: list of imported batches, re-upload or remove batch (remove only if no decisions attached)
+- [ ] Stage 2: multiple RIS + PDF bundles allowed; `L1` paths resolved per batch root
+- [ ] Encrypted payload: stable paper IDs across merges so reviewer progress survives new imports
+
+### Data model (sketch)
+
+- [ ] `Review` → `RisBatch[]` (id, label, filename, uploadedAt, recordCount)
+- [ ] `Paper` → `sourceBatchId`, `externalIds` (DOI, PMID), dedupe hash
+
 ---
 
 ## v0.6 — Multi-stage screening
@@ -44,7 +66,8 @@ Reference layout: local `SR-1/` example (gitignored) — RIS with `L1` paths to 
 ### Data model (sketch)
 
 - [ ] `Review` → `Stage` (1 | 2) → `ScreeningMode` (title | title_abstract | fulltext)
-- [ ] `Paper` → optional `pdfKey`, `customFields`, `stage1Decision` aggregation rules
+- [ ] `Review` → `RisBatch[]` — see [Multi-RIS import](#multi-ris-import-per-review)
+- [ ] `Paper` → optional `pdfKey`, `customFields`, `stage1Decision`, `sourceBatchId`
 
 ---
 
@@ -53,7 +76,7 @@ Reference layout: local `SR-1/` example (gitignored) — RIS with `L1` paths to 
 Each systematic review is an isolated project with its own admin; one **super-admin** manages all reviews.
 
 - [ ] **Review** entity: name, slug, project password, stage config, rubric
-- [ ] **Review admin** — scoped to one review (RIS upload, reviewers, progress for that review only)
+- [ ] **Review admin** — scoped to one review (multi-RIS upload, reviewers, progress for that review only)
 - [ ] **Super-admin** — create/delete reviews, assign review admins, global usage overview
 - [ ] Auth: JWT claims include `reviewId` + role (`super_admin` | `review_admin` | `reviewer`)
 - [ ] KV key namespace per review (e.g. `review:{id}:papers`, `review:{id}:decisions:{userId}`)
@@ -66,7 +89,7 @@ Each systematic review is an isolated project with its own admin; one **super-ad
 
 Tables and charts for admins (and super-admin) to see screening health at a glance.
 
-- [ ] **Triage counts** — pending / include / exclude / maybe / skip per stage
+- [ ] **Triage counts** — pending / include / exclude / maybe / skip per stage (and per RIS batch / source)
 - [ ] **Per-reviewer progress** — completed, remaining, last active
 - [ ] **Conflict preview** — papers where reviewers disagree (when ≥2 reviewers)
 - [ ] **Stage funnel** — stage 1 → stage 2 pipeline counts
@@ -117,6 +140,33 @@ After yes/no/maybe, reviewers organize decisions into **reason buckets** (custom
 - [ ] R2 bucket for PDFs; size limits and virus-scan note in docs
 - [ ] Rate limits and audit log for super-admin actions
 - [ ] Migration path from single-tenant v0.5 KV layout to multi-review keys
+- [ ] Multi-RIS merge tests (duplicate DOI, title-only records, conflicting metadata)
+
+---
+
+## Security hardening (brute-force & auth)
+
+Protect against password guessing and credential stuffing.
+
+**Current (v1.0.1):**
+
+- [x] Per-IP login rate limit (30/min)
+- [x] Per-username login rate limit (10/min)
+- [x] Generic `Invalid credentials` response (no user enumeration)
+- [x] bcrypt (12 rounds) for password hashes
+
+**TODO:**
+
+- [ ] **Account lockout** — temporary block after N failed attempts per username (e.g. 15 failures → 15 min lockout)
+- [ ] **Exponential backoff** — increasing delay per failed attempt on same IP/username
+- [ ] **Cloudflare Turnstile** or hCaptcha on login forms after 3 failures
+- [ ] **Alerting** — log repeated 429s / failed login spikes to admin audit log
+- [ ] **Password policy** — minimum length + complexity for admin/reviewer passwords at creation
+- [ ] **Optional 2FA** for super-admin (TOTP)
+- [ ] **WAF rules** — Cloudflare rate limiting rules in front of `/api/auth/login`
+- [ ] **Honeypot** admin username that triggers IP ban + alert
+
+See [docs/deployment/credentials-and-setup.md](docs/deployment/credentials-and-setup.md) for current limits.
 
 ---
 
@@ -135,7 +185,7 @@ SR-1/
     …
 ```
 
-RIS `L1` field links each record to its PDF relative path. Stage-2 importer should validate paths, dedupe by DOI/title, and report missing PDFs.
+RIS `L1` field links each record to its PDF relative path. Stage-2 importer should validate paths, dedupe by DOI/title, and report missing PDFs. A review may include **several** such bundles (multiple `.ris` files + shared or per-batch `files/` trees).
 
 ---
 
